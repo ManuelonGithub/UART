@@ -27,50 +27,63 @@ module uart
  )
 (
     input wire clk_i, rst_i,
-    input wire txEn_i,
+//    input wire txEn_i,
+//    input wire[7:0] txData_i,
     input wire rx_i,
-    input wire[7:0] data_i,
-    output reg baudClk_o, tx_o, rdy_o, done_o, datEn_o,
-    output reg[7:0] data_o
+    output reg tx_o,
+    output reg[7:0] data_o,
+
+    output reg[1:0] status_o, 
+    output reg baudEn_o, empty_o, rx_o
 );
 
 wire baudClk;
 
-wire en;
+wire rxRdy, txRdy;
+wire wr = rxRdy;
+wire rd = rxRdy & txRdy;
 
-//button_press_detector buttonDetect (
-//    .clk_i   (clk_i),
-//    .button_i(txEn_i),
-//    .press_o (en)
+wire[7:0] rdDat;
+
+// BaudRateGen #(.MCLK(CLK_RATE), .BAUD(BAUD_RATE)) baudGenerator (
+// 	.clk_i(clk_i), 
+// 	.rst_i(rst_i),
+// 	.en_i(1),
+// 	.baudClk_o(baudClk_o)
+// );
+
+localparam [15:0] BAUD_VAL = CLK_RATE/(BAUD_RATE*2)-1;
+
+//baudGenerator   BaudGenerator (
+//    .clk_i      (clk_i), 
+//	.rst_i      (rst_i),
+//	.prescaler_i(0),
+//	.baud_i     (BAUD_VAL),
+//	.baudClk_o  (baudClk_o)
 //);
 
-assign en = txEn_i;
-
-BaudRateGen #(.MCLK(CLK_RATE), .BAUD(BAUD_RATE)) baudGenerator (
-	.clk_i(clk_i), 
-	.rst_i(rst_i),
-	.en_i(1),
-	.baudClk_o(baudClk_o)
-);
-
 uartTX tx (
-    .clk_i    (clk_i),
-    .baudClk_i(baudClk_o),
-    .rst_i    (rst_i),
-    .en_i     (en),
-    .data_i   (data_i),
-    .txDat_o  (tx_o),
-    .rdy_o    (rdy_o),
-    .done_o   (done_o)
+    .clk_i  (clk_i),
+    .rst_i  (rst_i),
+    .baud_i (BAUD_VAL),
+    .wr_i   (rxRdy),
+    .data_i (data_o),
+    .txDat_o(tx_o),
+    .rdy_o  (txRdy)
 );
 
 uartRX rx (
-	.clk_i(clk_i), 
-	.baudClk_i(baudClk_o), 
-	.rst_i(rst_i),
-	.dat_i(tx_o),
-	.datEn_o(datEn_o),
-    .dat_o(data_o)
+    .clk_i    (clk_i),
+    .rst_i    (rst_i),
+    .baud_i   (BAUD_VAL),
+    .dat_i    (rx_i),
+    .rd_i     (rd),
+    .datEn_o  (rxRdy),
+    .dat_o    (data_o),
+    .status_o (status_o),
+    .baudEn_o (baudEn_o),
+    .empty_o  (empty_o),
+    .rx_o     (rx_o)
 );
 
 endmodule

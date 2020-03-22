@@ -5,7 +5,7 @@
 module fifo 
 #(
 	parameter WORD = 8,
-	parameter DEPTH = 16
+	parameter DEPTH = 8
  )
 (
 	input wire clk_i, rst_i,

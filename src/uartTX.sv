@@ -2,10 +2,16 @@
 
 
 
-module uartTX 
+module uartTX
+#(
+	parameter BAUD_WORD = 16
+ )
 (
-	input wire clk_i, baudClk_i, rst_i,
-	input wire en_i,
+	input wire clk_i, rst_i,
+
+	input wire[BAUD_WORD-1:0] baud_i,
+
+	input wire wr_i,
 	input wire[7:0] data_i,
 	output reg txDat_o, txEn_o, rdy_o, done_o
 );
@@ -17,10 +23,20 @@ reg[1:0] state, nextState;
 reg[7:0] data_r;
 reg fifoRd, full, empty;
 
+reg baudClk;
+
+baudGenerator baudGen (
+	.clk_i    (clk_i),
+	.rst_i    (rst_i),
+	.en_i     (1),
+	.baud_i   (baud_i),
+	.baudClk_o(baudClk)
+);
+
 fifo FifoBuffer (
 	.clk_i  (clk_i),
 	.rst_i  (rst_i),
-	.wr_i   (en_i),
+	.wr_i   (wr_i),
 	.rd_i   (fifoRd),
 	.data_i (data_i),
 	.full_o (full),
@@ -85,9 +101,8 @@ always @ (*) begin
 				2'b11:
 					nextState <= IDLE;
 			endcase
-			
-//			nextState <= IDLE;
 		end
+
 		default: begin
 		  nextState <= IDLE;
 		end
@@ -117,7 +132,7 @@ always @ (*) begin
 end
 
 // Baudrate dependent synchronous behaviour
-always @ (posedge baudClk_i or posedge rst_i) begin
+always @ (posedge baudClk or posedge rst_i) begin
 	if (rst_i) begin
 		bitCounter_r 	<= 0;
 		shift_r			<= {SHIFT_W{1'b1}};
